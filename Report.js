@@ -1,12 +1,40 @@
 // ==========================================
 // FILE: Report.js
-// FUNGSI: UI Laporan & Cetak A4
+// FUNGSI: UI Laporan & Cetak A4 (Format DD-MM-YYYY)
 // ==========================================
 
 const Report = {
     reportData: [],
     startDate: '',
     endDate: '',
+
+    parseLocalDate: (dateStr) => {
+        if (!dateStr) return null;
+        if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr.trim())) {
+            const [y, m, d] = dateStr.trim().split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+        const d = new Date(dateStr);
+        return isNaN(d.getTime()) ? null : d;
+    },
+
+    toYMD: (dateStr) => {
+        const d = Report.parseLocalDate(dateStr);
+        if (!d) return dateStr;
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    },
+
+    formatDate: (dateStr) => {
+        const d = Report.parseLocalDate(dateStr);
+        if (!d) return dateStr;
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}-${month}-${year}`;
+    },
 
     render: () => {
         const container = document.getElementById('content-area');
@@ -42,10 +70,11 @@ const Report = {
 
         container.innerHTML = html;
         
-        // Set default filter ke bulan ini
+        // Set default filter ke bulan berjalan
         const now = new Date();
-        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+        const firstDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+        const lastDateObj = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        const lastDay = `${lastDateObj.getFullYear()}-${String(lastDateObj.getMonth() + 1).padStart(2, '0')}-${String(lastDateObj.getDate()).padStart(2, '0')}`;
         
         document.getElementById('filter-start').value = firstDay;
         document.getElementById('filter-end').value = lastDay;
@@ -66,13 +95,14 @@ const Report = {
         try {
             const allData = await Utils.fetchAPI('getTransactions', { userId: user.ID, role: user.Role });
             
-            // Filter by Date Range
+            // Filter berdasarkan tanggal lokal YYYY-MM-DD agar akurat tanpa selisih zona waktu
             Report.reportData = allData.filter(t => {
-                return t.Tanggal >= Report.startDate && t.Tanggal <= Report.endDate;
+                const trxYMD = Report.toYMD(t.Tanggal);
+                return trxYMD >= Report.startDate && trxYMD <= Report.endDate;
             });
             
-            // Reverse agar data terlama di atas (logika laporan akuntansi)
-            Report.reportData.reverse(); 
+            // Urutkan kronologis dari tanggal terlama ke terbaru
+            Report.reportData.sort((a, b) => Report.toYMD(a.Tanggal).localeCompare(Report.toYMD(b.Tanggal)));
             
             Report.renderTableResult();
         } catch (error) {} finally {
@@ -88,12 +118,12 @@ const Report = {
 
         let rowsHTML = Report.reportData.map((t, i) => {
             const isDebit = t.Jenis === 'Debit';
-            const nominal = parseFloat(t.Nominal);
+            const nominal = parseFloat(t.Nominal) || 0;
             if (isDebit) totalDebit += nominal; else totalKredit += nominal;
 
             return `
             <tr class="${i % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900'} border-b dark:border-gray-700 text-gray-800 dark:text-gray-200">
-                <td class="px-6 py-3 whitespace-nowrap">${t.Tanggal}</td>
+                <td class="px-6 py-3 whitespace-nowrap">${Report.formatDate(t.Tanggal)}</td>
                 <td class="px-6 py-3">${t.Keterangan}</td>
                 <td class="px-6 py-3 text-right font-medium">${isDebit ? Utils.formatCurrency(nominal) : '-'}</td>
                 <td class="px-6 py-3 text-right font-medium">${!isDebit ? Utils.formatCurrency(nominal) : '-'}</td>
@@ -140,12 +170,12 @@ const Report = {
 
         let rowsHTML = Report.reportData.map((t) => {
             const isDebit = t.Jenis === 'Debit';
-            const nominal = parseFloat(t.Nominal);
+            const nominal = parseFloat(t.Nominal) || 0;
             if (isDebit) totalDebit += nominal; else totalKredit += nominal;
 
             return `
             <tr>
-                <td class="text-center">${t.Tanggal}</td>
+                <td class="text-center">${Report.formatDate(t.Tanggal)}</td>
                 <td>${t.Keterangan}</td>
                 <td class="text-right">${isDebit ? Utils.formatCurrency(nominal) : '-'}</td>
                 <td class="text-right">${!isDebit ? Utils.formatCurrency(nominal) : '-'}</td>
@@ -153,7 +183,6 @@ const Report = {
             `;
         }).join('');
 
-        // Buka Jendela Baru untuk Print
         const printWin = window.open('', '', 'width=900,height=650');
         printWin.document.write(`
             <html>
@@ -176,7 +205,7 @@ const Report = {
             <body>
                 <div class="header">
                     <h2>REKAP BUKU BESAR ${user.Nama.toUpperCase()}</h2>
-                    <p>PERIODE: ${Report.startDate} s/d ${Report.endDate}</p>
+                    <p>PERIODE: ${Report.formatDate(Report.startDate)} s/d ${Report.formatDate(Report.endDate)}</p>
                 </div>
                 <table>
                     <thead>
@@ -195,7 +224,7 @@ const Report = {
                     </tr>
                 </table>
                 <div style="text-align: right; margin-top: 40px; padding-right: 20px;">
-                    <p>Dicetak pada: ${new Date().toLocaleDateString('id-ID')}</p>
+                    <p>Dicetak pada: ${Report.formatDate(new Date())}</p>
                 </div>
                 <script>
                     window.onload = function() { window.print(); window.close(); }
