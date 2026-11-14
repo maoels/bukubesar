@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplikasi Manajemen Keuangan</title>
-
+    
     <!-- TANDAI: GANTI URL FAVICON DI SINI -->
     <link rel="icon" type="image/jpeg" href="https://i.ibb.co.com/XZSLrnKP/Gemini-Generated-Image-9r41qh9r41qh9r41.jpg">
     <link rel="apple-touch-icon" href="https://i.ibb.co.com/XZSLrnKP/Gemini-Generated-Image-9r41qh9r41qh9r41.jpg">
@@ -32,20 +32,29 @@
 
     <div id="app" class="min-h-screen flex hidden opacity-0 transition-opacity duration-500">
         
-        <!-- SIDEBAR -->
-        <aside id="sidebar" class="relative w-64 bg-white dark:bg-gray-800 shadow-xl hidden md:flex flex-col transition-all duration-300 z-50">
+        <!-- BACKDROP GELAP KHUSUS MENU MOBILE -->
+        <div id="mobile-backdrop" onclick="Utils.closeMobileMenu()" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-40 hidden md:hidden transition-opacity"></div>
+
+        <!-- SIDEBAR (Desktop: Samping Kiri | Mobile: Slide-Over Drawer) -->
+        <aside id="sidebar" class="fixed inset-y-0 left-0 -translate-x-full md:relative md:translate-x-0 w-64 bg-white dark:bg-gray-800 shadow-xl flex flex-col transition-all duration-300 z-50">
             
-            <!-- Tombol Toggle Kecil di Tengah -->
-            <button onclick="Utils.toggleSidebar()" class="absolute -right-3 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full w-6 h-6 flex items-center justify-center text-gray-500 dark:text-gray-300 hover:text-primary shadow-md focus:outline-none z-[60] transition-colors">
+            <!-- Tombol Toggle Kecil di Tengah (Khusus Desktop) -->
+            <button onclick="Utils.toggleSidebar()" class="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full w-6 h-6 items-center justify-center text-gray-500 dark:text-gray-300 hover:text-primary shadow-md focus:outline-none z-[60] transition-colors">
                 <i id="sidebar-toggle-icon" class="fas fa-chevron-left text-xs transition-transform duration-300"></i>
             </button>
 
             <div class="overflow-hidden flex flex-col justify-between h-full whitespace-nowrap">
                 <div>
-                    <div class="h-16 flex items-center px-6 border-b dark:border-gray-700 gap-4">
-                        <!-- TANDAI: GANTI URL LOGO SIDEBAR DI SINI -->
-                        <img src="https://i.ibb.co.com/XZSLrnKP/Gemini-Generated-Image-9r41qh9r41qh9r41.jpg" alt="Logo" class="w-8 h-8 rounded-lg object-cover flex-shrink-0 shadow-sm border border-gray-100 dark:border-gray-700">
-                        <h1 id="sidebar-title" class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary transition-opacity duration-300">Sistem Keuangan</h1>
+                    <div class="h-16 flex items-center justify-between px-6 border-b dark:border-gray-700">
+                        <div class="flex items-center gap-4 overflow-hidden">
+                            <!-- TANDAI: GANTI URL LOGO SIDEBAR DI SINI -->
+                            <img src="https://i.ibb.co.com/XZSLrnKP/Gemini-Generated-Image-9r41qh9r41qh9r41.jpg" alt="Logo" class="w-8 h-8 rounded-lg object-cover flex-shrink-0 shadow-sm border border-gray-100 dark:border-gray-700">
+                            <h1 id="sidebar-title" class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary transition-opacity duration-300">Sistem Keuangan</h1>
+                        </div>
+                        <!-- Tombol Tutup Sidebar di Mobile -->
+                        <button onclick="Utils.closeMobileMenu()" class="md:hidden text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 focus:outline-none">
+                            <i class="fas fa-times text-lg"></i>
+                        </button>
                     </div>
                     <nav class="p-4 space-y-2 mt-2" id="sidebar-nav"></nav>
                 </div>
@@ -59,23 +68,27 @@
             </div>
         </aside>
 
-        <!-- MAIN CONTENT AREA -->
-        <main class="flex-1 flex flex-col relative h-screen overflow-hidden">
-            <header class="h-16 shrink-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-sm flex items-center justify-between px-6 z-10 transition-colors duration-300">
-                <div class="flex items-center gap-4">
-                    <h2 id="page-title" class="text-xl font-semibold">Dashboard</h2>
+        <!-- MAIN CONTENT AREA (min-w-0 mencegah tabel melebar keluar layar HP) -->
+        <main class="flex-1 min-w-0 flex flex-col relative h-screen overflow-hidden">
+            <header class="h-16 shrink-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-sm flex items-center justify-between px-4 sm:px-6 z-10 transition-colors duration-300 gap-2">
+                <div class="flex items-center gap-3 min-w-0">
+                    <h2 id="page-title" class="text-lg sm:text-xl font-semibold truncate">Dashboard</h2>
                 </div>
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-3 sm:gap-4 shrink-0">
                     <span id="user-greeting" class="hidden sm:block text-sm font-medium"></span>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="theme-toggle" class="sr-only peer">
                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
                         <i class="fas fa-moon ml-2 text-gray-400 dark:text-yellow-300"></i>
                     </label>
+                    <!-- TOMBOL MENU GARIS TIGA DI KANAN ATAS (KHUSUS MOBILE) -->
+                    <button onclick="Utils.toggleMobileMenu()" aria-label="Buka Menu" class="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none transition-colors">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
                 </div>
             </header>
 
-            <div id="content-area" class="flex-1 overflow-y-auto p-6 scroll-smooth"></div>
+            <div id="content-area" class="flex-1 overflow-y-auto p-4 sm:p-6 scroll-smooth"></div>
 
             <!-- FOOTER COPYRIGHT SEMUA HALAMAN PANEL -->
             <footer class="shrink-0 py-3 px-6 text-center text-xs text-gray-500 dark:text-gray-400 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md border-t border-gray-200/60 dark:border-gray-700/60">
@@ -91,7 +104,7 @@
             <div class="text-center mb-8">
                 <!-- TANDAI: GANTI URL LOGO LOGIN DI SINI -->
                 <div class="w-24 h-24 mx-auto mb-4">
-                    <img src="https://i.ibb.co.com/XZSLrnKP/Gemini-Generated-Image-9r41qh9r41qh9r41.jpg" alt="Manajemen Keuangan" class="w-full h-full rounded-2xl object-cover shadow-lg border-2 border-white dark:border-gray-700">
+                    <img src="https://i.ibb.co.com/XZSLrnKP/Gemini-Generated-Image-9r41qh9r41qh9r41.jpg" alt="Logo Keuangan" class="w-full h-full rounded-2xl object-cover shadow-lg border-2 border-white dark:border-gray-700">
                 </div>
                 <h2 class="text-2xl font-bold">Selamat Datang</h2>
                 <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">Masuk untuk mengelola keuangan Anda</p>
