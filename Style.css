@@ -40,6 +40,19 @@
     background: #94a3b8; 
 }
 
+/* ==========================================
+   RESPONSIVE TABLE HORIZONTAL SCROLL (MOBILE)
+   ========================================== */
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-container table {
+    min-width: 600px;
+}
+
 /* Base Styles untuk Tabel Modern (Zebra stripped ditangani via Tailwind classes nanti) */
 .table-container {
     @apply overflow-x-auto rounded-lg shadow ring-1 ring-black ring-opacity-5;
