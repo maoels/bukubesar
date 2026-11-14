@@ -1,14 +1,22 @@
 // ==========================================
 // FILE: Ledger.js
-// FUNGSI: UI Buku Besar (Search & Format Date Fix)
+// FUNGSI: UI Buku Besar (Cards Total, Filter Bulan & Tahun)
 // ==========================================
 
 const Ledger = {
     allData: [],
-    filteredData: [], // Tambahan untuk fungsi pencarian
+    filteredData: [],
+    selectedMonth: new Date().getMonth(), // Default bulan berjalan (0 - 11)
+    selectedYear: new Date().getFullYear(), // Default tahun berjalan
+    searchQuery: '',
     currentPage: 1,
     perPage: 10,
     chartInstance: null,
+
+    monthNames: [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ],
 
     render: async () => {
         const container = document.getElementById('content-area');
@@ -16,7 +24,6 @@ const Ledger = {
         try {
             const user = JSON.parse(localStorage.getItem('fin_user'));
             Ledger.allData = await Utils.fetchAPI('getTransactions', { userId: user.ID, role: user.Role });
-            Ledger.filteredData = [...Ledger.allData]; 
             Ledger.buildUI(container);
         } catch (error) {
             container.innerHTML = `<div class="text-red-500 text-center mt-10">Gagal memuat Buku Besar: ${error.message}</div>`;
@@ -25,29 +32,73 @@ const Ledger = {
 
     buildUI: (container) => {
         const currentYear = new Date().getFullYear();
+        const yearOptions = [];
+        for (let y = currentYear + 1; y >= currentYear - 5; y--) {
+            yearOptions.push(`<option value="${y}" ${y === Ledger.selectedYear ? 'selected' : ''}>${y}</option>`);
+        }
+
+        const monthOptions = Ledger.monthNames.map((name, idx) => 
+            `<option value="${idx}" ${idx === Ledger.selectedMonth ? 'selected' : ''}>${name}</option>`
+        ).join('');
+
         let html = `
+            <!-- Filter Bulan & Tahun -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-2 text-gray-700 dark:text-gray-200 font-semibold">
+                    <i class="fas fa-filter text-primary"></i>
+                    <span>Periode Buku Besar</span>
+                </div>
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <select id="ledger-month-filter" class="w-full sm:w-40 bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-primary focus:border-primary p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        ${monthOptions}
+                    </select>
+                    <select id="ledger-year-filter" class="w-full sm:w-28 bg-gray-50 border border-gray-300 text-sm rounded-lg focus:ring-primary focus:border-primary p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        ${yearOptions.join('')}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Cards Total Debit & Total Kredit -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow relative overflow-hidden">
+                    <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-full opacity-50"></div>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Total Debit (<span id="label-periode-debit">${Ledger.monthNames[Ledger.selectedMonth]} ${Ledger.selectedYear}</span>)</p>
+                    <h3 id="ledger-total-debit" class="text-2xl font-bold text-gray-800 dark:text-white">Rp 0</h3>
+                    <div class="mt-3 text-xs font-medium text-green-600 dark:text-green-400"><i class="fas fa-arrow-down mr-1"></i> Pemasukan</div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow relative overflow-hidden">
+                    <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-red-100 dark:bg-red-900/30 rounded-full opacity-50"></div>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Total Kredit (<span id="label-periode-kredit">${Ledger.monthNames[Ledger.selectedMonth]} ${Ledger.selectedYear}</span>)</p>
+                    <h3 id="ledger-total-kredit" class="text-2xl font-bold text-gray-800 dark:text-white">Rp 0</h3>
+                    <div class="mt-3 text-xs font-medium text-red-600 dark:text-red-400"><i class="fas fa-arrow-up mr-1"></i> Pengeluaran</div>
+                </div>
+            </div>
+
+            <!-- Grafik & Tombol Catat Transaksi -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-                    <h3 class="font-semibold mb-4 text-gray-700 dark:text-gray-200">Grafik Transaksi Anda (${currentYear})</h3>
+                    <h3 class="font-semibold mb-4 text-gray-700 dark:text-gray-200">Grafik Transaksi Anda (<span id="ledger-chart-year-label">${Ledger.selectedYear}</span>)</h3>
                     <div class="relative h-48 w-full"><canvas id="ledgerChart"></canvas></div>
                 </div>
                 
                 <div class="bg-gradient-to-br from-primary to-indigo-600 rounded-xl p-6 shadow-sm text-white flex flex-col justify-center items-center text-center relative overflow-hidden">
                     <i class="fas fa-wallet text-4xl mb-3"></i>
                     <h3 class="font-semibold text-lg mb-1">Catat Transaksi</h3>
-                    <button onclick="Ledger.openModal('add')" class="bg-white text-primary hover:bg-gray-50 px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors w-full mt-4">
+                    <p class="text-xs text-indigo-100 mb-4">Tambahkan catatan debit atau kredit baru</p>
+                    <button onclick="Ledger.openModal('add')" class="bg-white text-primary hover:bg-gray-50 px-6 py-2.5 rounded-lg font-bold shadow-lg transition-colors w-full">
                         <i class="fas fa-plus mr-2"></i> Tambah Data
                     </button>
                 </div>
             </div>
 
+            <!-- Tabel Daftar Transaksi -->
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                <!-- Toolbar Pencarian Data (Task 2) -->
                 <div class="p-4 border-b dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50 dark:bg-gray-800/50">
-                    <h3 class="font-semibold text-gray-700 dark:text-gray-200">Daftar Transaksi</h3>
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200">Daftar Transaksi (<span id="label-tabel-periode">${Ledger.monthNames[Ledger.selectedMonth]} ${Ledger.selectedYear}</span>)</h3>
                     <div class="relative w-full sm:w-64">
                         <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"><i class="fas fa-search text-gray-400"></i></div>
-                        <input type="text" id="ledger-search" placeholder="Cari keterangan / jenis..." class="bg-white border border-gray-300 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <input type="text" id="ledger-search" value="${Ledger.searchQuery}" placeholder="Cari keterangan / jenis..." class="bg-white border border-gray-300 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     </div>
                 </div>
                 <div class="table-container">
@@ -100,20 +151,71 @@ const Ledger = {
             </div>
         `;
         container.innerHTML = html;
-        Ledger.renderTable();
-        Ledger.renderChart(currentYear);
+
+        Ledger.applyFilters(true);
+        Ledger.renderChart(Ledger.selectedYear);
+
         document.getElementById('ledger-form').addEventListener('submit', Ledger.saveTransaction);
+
+        // Event Listener Filter Bulan
+        document.getElementById('ledger-month-filter').addEventListener('change', (e) => {
+            Ledger.selectedMonth = parseInt(e.target.value);
+            Ledger.applyFilters(true);
+        });
+
+        // Event Listener Filter Tahun
+        document.getElementById('ledger-year-filter').addEventListener('change', (e) => {
+            Ledger.selectedYear = parseInt(e.target.value);
+            document.getElementById('ledger-chart-year-label').textContent = Ledger.selectedYear;
+            Ledger.applyFilters(true);
+            Ledger.renderChart(Ledger.selectedYear);
+        });
 
         // Event Listener Pencarian
         document.getElementById('ledger-search').addEventListener('input', (e) => {
-            const keyword = e.target.value.toLowerCase();
-            Ledger.filteredData = Ledger.allData.filter(t => 
-                t.Keterangan.toLowerCase().includes(keyword) || 
-                t.Jenis.toLowerCase().includes(keyword)
-            );
-            Ledger.currentPage = 1;
-            Ledger.renderTable();
+            Ledger.searchQuery = e.target.value.toLowerCase();
+            Ledger.applyFilters(true);
         });
+    },
+
+    applyFilters: (resetPage = false) => {
+        if (resetPage) Ledger.currentPage = 1;
+
+        const periodText = `${Ledger.monthNames[Ledger.selectedMonth]} ${Ledger.selectedYear}`;
+        document.getElementById('label-periode-debit').textContent = periodText;
+        document.getElementById('label-periode-kredit').textContent = periodText;
+        document.getElementById('label-tabel-periode').textContent = periodText;
+
+        // 1. Filter data sesuai Bulan & Tahun terpilih
+        const periodData = Ledger.allData.filter(t => {
+            const d = new Date(t.Tanggal);
+            if (isNaN(d.getTime())) return false;
+            return d.getMonth() === Ledger.selectedMonth && d.getFullYear() === Ledger.selectedYear;
+        });
+
+        // 2. Hitung Total Debit & Kredit pada periode terpilih untuk Card
+        let totalDebit = 0;
+        let totalKredit = 0;
+        periodData.forEach(t => {
+            const nominal = parseFloat(t.Nominal) || 0;
+            if (t.Jenis === 'Debit') totalDebit += nominal;
+            else if (t.Jenis === 'Kredit') totalKredit += nominal;
+        });
+
+        document.getElementById('ledger-total-debit').textContent = Utils.formatCurrency(totalDebit);
+        document.getElementById('ledger-total-kredit').textContent = Utils.formatCurrency(totalKredit);
+
+        // 3. Terapkan pencarian teks pada data bulan & tahun terpilih
+        if (Ledger.searchQuery) {
+            Ledger.filteredData = periodData.filter(t =>
+                String(t.Keterangan).toLowerCase().includes(Ledger.searchQuery) ||
+                String(t.Jenis).toLowerCase().includes(Ledger.searchQuery)
+            );
+        } else {
+            Ledger.filteredData = periodData;
+        }
+
+        Ledger.renderTable();
     },
 
     renderTable: () => {
@@ -125,7 +227,6 @@ const Ledger = {
         tbody.innerHTML = displayData.map((t, i) => {
             const isDebit = t.Jenis === 'Debit';
             
-            // PERBAIKAN FORMAT TANGGAL DD-MM-YYYY (Task 1)
             let formattedDate = t.Tanggal;
             const d = new Date(t.Tanggal);
             if (!isNaN(d.getTime())) {
@@ -146,7 +247,7 @@ const Ledger = {
                 </td>
             </tr>
             `;
-        }).join('') || `<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">Data tidak ditemukan.</td></tr>`;
+        }).join('') || `<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">Tidak ada transaksi pada periode ${Ledger.monthNames[Ledger.selectedMonth]} ${Ledger.selectedYear}.</td></tr>`;
 
         Ledger.renderPagination(totalRows);
     },
@@ -175,9 +276,9 @@ const Ledger = {
         let chartDebit = Array(12).fill(0); let chartKredit = Array(12).fill(0);
         Ledger.allData.forEach(t => {
             let d = new Date(t.Tanggal);
-            if (d.getFullYear() === year) {
-                if (t.Jenis === 'Debit') chartDebit[d.getMonth()] += parseFloat(t.Nominal);
-                else chartKredit[d.getMonth()] += parseFloat(t.Nominal);
+            if (!isNaN(d.getTime()) && d.getFullYear() === year) {
+                if (t.Jenis === 'Debit') chartDebit[d.getMonth()] += parseFloat(t.Nominal) || 0;
+                else chartKredit[d.getMonth()] += parseFloat(t.Nominal) || 0;
             }
         });
 
