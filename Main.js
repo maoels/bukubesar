@@ -1,6 +1,6 @@
 // ==========================================
 // FILE: Main.js
-// FUNGSI: Config Global, Utility, Toggle & Session
+// FUNGSI: Config Global, Utility, Toggle, Mobile Menu & Responsive Table
 // ==========================================
 
 const AppConfig = {
@@ -10,7 +10,7 @@ const AppConfig = {
 };
 
 const Utils = {
-    // --- LOGIC TOGGLE SIDEBAR BARU ---
+    // --- LOGIC TOGGLE SIDEBAR DESKTOP ---
     isSidebarCollapsed: false,
     toggleSidebar: () => {
         Utils.isSidebarCollapsed = !Utils.isSidebarCollapsed;
@@ -26,7 +26,6 @@ const Utils = {
             logoutText.classList.add('opacity-0');
             navTexts.forEach(t => t.classList.add('opacity-0'));
             
-            // Beri jeda menghilangkan display setelah animasi opacity selesai
             setTimeout(() => {
                 title.classList.add('hidden');
                 logoutText.classList.add('hidden');
@@ -46,6 +45,33 @@ const Utils = {
             }, 50);
             icon.classList.remove('rotate-180');
         }
+    },
+
+    // --- LOGIC MENU HAMBURGER MOBILE ---
+    toggleMobileMenu: () => {
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('mobile-backdrop');
+        if (!sidebar) return;
+
+        // Pastikan teks menu tampil utuh saat drawer dibuka di mobile
+        if (Utils.isSidebarCollapsed) {
+            Utils.toggleSidebar();
+        }
+
+        const isClosed = sidebar.classList.contains('-translate-x-full');
+        if (isClosed) {
+            sidebar.classList.remove('-translate-x-full');
+            if (backdrop) backdrop.classList.remove('hidden');
+        } else {
+            Utils.closeMobileMenu();
+        }
+    },
+
+    closeMobileMenu: () => {
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('mobile-backdrop');
+        if (sidebar) sidebar.classList.add('-translate-x-full');
+        if (backdrop) backdrop.classList.add('hidden');
     },
 
     showToast: (message, type = 'success') => {
@@ -92,6 +118,29 @@ const Utils = {
 };
 
 // ==========================================
+// OTOMATISASI SCROLL HORIZONTAL TABEL DI SEMUA HALAMAN
+// ==========================================
+function initResponsiveTables() {
+    const contentArea = document.getElementById('content-area');
+    if (!contentArea) return;
+
+    const wrapTables = () => {
+        contentArea.querySelectorAll('table').forEach(table => {
+            const parent = table.parentElement;
+            if (parent && !parent.classList.contains('table-container') && !parent.classList.contains('overflow-x-auto')) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'table-container w-full overflow-x-auto';
+                parent.insertBefore(wrapper, table);
+                wrapper.appendChild(table);
+            }
+        });
+    };
+
+    const observer = new MutationObserver(wrapTables);
+    observer.observe(contentArea, { childList: true, subtree: true });
+}
+
+// ==========================================
 // SESSION & INACTIVITY MANAGER
 // ==========================================
 let inactivityTimer;
@@ -132,4 +181,7 @@ function initTheme() {
     }
 }
 
-window.addEventListener('DOMContentLoaded', initTheme);
+window.addEventListener('DOMContentLoaded', () => {
+    initTheme();
+    initResponsiveTables();
+});
