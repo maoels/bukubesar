@@ -1,0 +1,46 @@
+/* ==========================================
+   Custom Animations & Scrollbars
+========================================== */
+
+/* Animasi Background Gradasi Bergerak Acak */
+.gradient-bg {
+    background: linear-gradient(-45deg, #f8fafc, #e0e7ff, #ecfdf5, #f1f5f9);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+}
+
+.dark .gradient-bg {
+    background: linear-gradient(-45deg, #111827, #1e1b4b, #064e3b, #1f2937);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px; /* For horizontal scroll */
+}
+::-webkit-scrollbar-track {
+    background: transparent; 
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1; 
+    border-radius: 4px;
+}
+.dark ::-webkit-scrollbar-thumb {
+    background: #475569; 
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8; 
+}
+
+/* Base Styles untuk Tabel Modern (Zebra stripped ditangani via Tailwind classes nanti) */
+.table-container {
+    @apply overflow-x-auto rounded-lg shadow ring-1 ring-black ring-opacity-5;
+}

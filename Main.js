@@ -1,0 +1,135 @@
+// ==========================================
+// FILE: Main.js
+// FUNGSI: Config Global, Utility, Toggle & Session
+// ==========================================
+
+const AppConfig = {
+    // PENTING: Ganti URL di bawah ini dengan Web App URL API Anda
+    API_URL: 'https://script.google.com/macros/s/AKfycbwbdfzXDr7rt4wZXdKr0cuomRMo2odcxVV7awHWTIySPqMLt-u0GvSKQxHipoRbBqz0PQ/exec', 
+    INACTIVITY_LIMIT_MS: 10 * 60 * 1000 // 10 Menit
+};
+
+const Utils = {
+    // --- LOGIC TOGGLE SIDEBAR BARU ---
+    isSidebarCollapsed: false,
+    toggleSidebar: () => {
+        Utils.isSidebarCollapsed = !Utils.isSidebarCollapsed;
+        const sidebar = document.getElementById('sidebar');
+        const title = document.getElementById('sidebar-title');
+        const logoutText = document.getElementById('sidebar-logout-text');
+        const icon = document.getElementById('sidebar-toggle-icon');
+        const navTexts = document.querySelectorAll('.sidebar-text');
+        
+        if (Utils.isSidebarCollapsed) {
+            sidebar.classList.replace('w-64', 'w-20');
+            title.classList.add('opacity-0');
+            logoutText.classList.add('opacity-0');
+            navTexts.forEach(t => t.classList.add('opacity-0'));
+            
+            // Beri jeda menghilangkan display setelah animasi opacity selesai
+            setTimeout(() => {
+                title.classList.add('hidden');
+                logoutText.classList.add('hidden');
+                navTexts.forEach(t => t.classList.add('hidden'));
+            }, 150);
+            icon.classList.add('rotate-180');
+        } else {
+            sidebar.classList.replace('w-20', 'w-64');
+            title.classList.remove('hidden');
+            logoutText.classList.remove('hidden');
+            navTexts.forEach(t => t.classList.remove('hidden'));
+            
+            setTimeout(() => {
+                title.classList.remove('opacity-0');
+                logoutText.classList.remove('opacity-0');
+                navTexts.forEach(t => t.classList.remove('opacity-0'));
+            }, 50);
+            icon.classList.remove('rotate-180');
+        }
+    },
+
+    showToast: (message, type = 'success') => {
+        const container = document.getElementById('toast-container');
+        if (!container) return; 
+
+        const toast = document.createElement('div');
+        const colors = {
+            success: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400',
+            error: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400',
+            info: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400'
+        };
+        const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+
+        toast.className = `flex items-center p-4 border rounded-lg shadow-lg transform transition-all duration-300 translate-x-full opacity-0 ${colors[type]}`;
+        toast.innerHTML = `<i class="fas ${icons[type]} mr-3 text-lg"></i> <span class="font-medium">${message}</span>`;
+        container.appendChild(toast);
+        
+        setTimeout(() => { toast.classList.remove('translate-x-full', 'opacity-0'); }, 10);
+        setTimeout(() => {
+            toast.classList.add('translate-x-full', 'opacity-0');
+            setTimeout(() => { toast.remove(); }, 300);
+        }, 3000);
+    },
+
+    formatCurrency: (amount) => {
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+    },
+    
+    fetchAPI: async (action, data = {}) => {
+        try {
+            const response = await fetch(AppConfig.API_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: action, data: data })
+            });
+            const result = await response.json();
+            if(result.code !== 200) throw new Error(result.message);
+            return result.data;
+        } catch (error) {
+            Utils.showToast(error.message, 'error');
+            throw error;
+        }
+    }
+};
+
+// ==========================================
+// SESSION & INACTIVITY MANAGER
+// ==========================================
+let inactivityTimer;
+
+function resetInactivityTimer() {
+    if(!localStorage.getItem('fin_user')) return;
+    clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(() => {
+        Utils.showToast('Sesi Anda telah berakhir karena tidak ada aktivitas (10 Menit).', 'info');
+        if (typeof Auth !== 'undefined') Auth.logout();
+    }, AppConfig.INACTIVITY_LIMIT_MS);
+}
+
+['click', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
+    document.addEventListener(event, resetInactivityTimer, true);
+});
+
+function initTheme() {
+    const themeToggle = document.getElementById('theme-toggle');
+    if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+        if (themeToggle) themeToggle.checked = true;
+    } else {
+        document.documentElement.classList.remove('dark');
+        if (themeToggle) themeToggle.checked = false;
+    }
+
+    if (themeToggle) {
+        themeToggle.addEventListener('change', function() {
+            if (this.checked) {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('color-theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('color-theme', 'light');
+            }
+        });
+    }
+}
+
+window.addEventListener('DOMContentLoaded', initTheme);

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Manajemen Keuangan</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Poppins', 'sans-serif'] },
+                    colors: { primary: '#4f46e5', secondary: '#10b981' }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="Style.css">
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 transition-colors duration-300 antialiased gradient-bg">
+    
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2"></div>
+
+    <div id="app" class="min-h-screen flex hidden opacity-0 transition-opacity duration-500">
+        
+        <!-- SIDEBAR -->
+        <aside id="sidebar" class="relative w-64 bg-white dark:bg-gray-800 shadow-xl hidden md:flex flex-col transition-all duration-300 z-50">
+            
+            <!-- PERBAIKAN: Tombol Toggle Kecil di Tengah (top-1/2 -translate-y-1/2) -->
+            <button onclick="Utils.toggleSidebar()" class="absolute -right-3 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full w-6 h-6 flex items-center justify-center text-gray-500 dark:text-gray-300 hover:text-primary shadow-md focus:outline-none z-[60] transition-colors">
+                <i id="sidebar-toggle-icon" class="fas fa-chevron-left text-xs transition-transform duration-300"></i>
+            </button>
+
+            <div class="overflow-hidden flex flex-col justify-between h-full whitespace-nowrap">
+                <div>
+                    <div class="h-16 flex items-center px-6 border-b dark:border-gray-700 gap-4">
+                        <!-- TANDAI: GANTI URL LOGO SIDEBAR DI SINI -->
+                        <img src="https://i.ibb.co.com/XZSLrnKP/Gemini-Generated-Image-9r41qh9r41qh9r41.jpg" alt="Logo" class="w-8 h-8 rounded-lg object-cover flex-shrink-0 shadow-sm border border-gray-100 dark:border-gray-700">
+                        <h1 id="sidebar-title" class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary transition-opacity duration-300">Sistem Keuangan</h1>
+                    </div>
+                    <nav class="p-4 space-y-2 mt-2" id="sidebar-nav"></nav>
+                </div>
+                
+                <div class="p-4 border-t dark:border-gray-700">
+                    <button onclick="Auth.logout()" class="w-full flex items-center gap-4 p-3 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 transition-colors" title="Keluar">
+                        <div class="w-6 flex justify-center flex-shrink-0"><i class="fas fa-sign-out-alt text-lg"></i></div>
+                        <span id="sidebar-logout-text" class="font-medium transition-opacity duration-300">Keluar</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 flex flex-col relative h-screen overflow-hidden">
+            <header class="h-16 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-sm flex items-center justify-between px-6 z-10 transition-colors duration-300">
+                <div class="flex items-center gap-4">
+                    <h2 id="page-title" class="text-xl font-semibold">Dashboard</h2>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span id="user-greeting" class="hidden sm:block text-sm font-medium"></span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="theme-toggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                        <i class="fas fa-moon ml-2 text-gray-400 dark:text-yellow-300"></i>
+                    </label>
+                </div>
+            </header>
+            <div id="content-area" class="flex-1 overflow-y-auto p-6 scroll-smooth"></div>
+        </main>
+    </div>
+
+    <!-- WRAPPER LOGIN / REGISTER -->
+    <div id="auth-container" class="min-h-screen flex items-center justify-center p-4">
+        <div id="login-card" class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-300">
+            <div class="text-center mb-8">
+                <!-- TANDAI: GANTI URL LOGO LOGIN DI SINI -->
+                <div class="w-24 h-24 mx-auto mb-4">
+                    <img src="https://i.ibb.co.com/XZSLrnKP/Gemini-Generated-Image-9r41qh9r41qh9r41.jpg" alt="Logo Keuangan" class="w-full h-full rounded-2xl object-cover shadow-lg border-2 border-white dark:border-gray-700">
+                </div>
+                <h2 class="text-2xl font-bold">Selamat Datang</h2>
+                <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">Masuk untuk mengelola keuangan Anda</p>
+            </div>
+            
+            <form id="login-form" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Username</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fas fa-user text-gray-400"></i></div>
+                        <input type="text" id="login-username" required class="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-transparent transition-colors">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fas fa-lock text-gray-400"></i></div>
+                        <input type="password" id="login-password" required class="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-transparent transition-colors">
+                        <button type="button" onclick="const input = document.getElementById('login-password'); const icon = document.getElementById('login-eye-icon'); if (input.type === 'password') { input.type = 'text'; icon.className = 'fas fa-eye-slash'; } else { input.type = 'password'; icon.className = 'fas fa-eye'; }" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-primary dark:hover:text-indigo-400 focus:outline-none transition-colors">
+                            <i class="fas fa-eye" id="login-eye-icon"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" id="btn-login" class="w-full bg-primary hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                    <span>Masuk</span>
+                </button>
+            </form>
+            <p class="text-center text-sm mt-6 text-gray-500">Belum punya akun? <a href="#" onclick="Auth.toggleView('register')" class="text-primary hover:underline font-medium">Daftar sekarang</a></p>
+        </div>
+
+        <div id="register-card" class="hidden bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-300">
+             <div class="text-center mb-6"><h2 class="text-2xl font-bold">Buat Akun</h2></div>
+            <form id="register-form" class="space-y-4">
+                <div><label class="block text-sm font-medium mb-1">Nama Lengkap</label><input type="text" id="reg-nama" required class="w-full px-3 py-2 border rounded-lg bg-transparent border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-1 focus:ring-primary"></div>
+                <div><label class="block text-sm font-medium mb-1">Email</label><input type="email" id="reg-email" required class="w-full px-3 py-2 border rounded-lg bg-transparent border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-1 focus:ring-primary"></div>
+                <div><label class="block text-sm font-medium mb-1">Username</label><input type="text" id="reg-username" required class="w-full px-3 py-2 border rounded-lg bg-transparent border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-1 focus:ring-primary"></div>
+                <div><label class="block text-sm font-medium mb-1">Password</label><input type="password" id="reg-password" required class="w-full px-3 py-2 border rounded-lg bg-transparent border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-1 focus:ring-primary"></div>
+                <div><label class="block text-sm font-medium mb-1">Ulangi Password</label><input type="password" id="reg-password-confirm" required class="w-full px-3 py-2 border rounded-lg bg-transparent border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-1 focus:ring-primary"></div>
+                <button type="submit" id="btn-register" class="w-full bg-secondary hover:bg-green-600 text-white font-medium py-2.5 rounded-lg shadow-md transition-all mt-2">Daftar</button>
+            </form>
+            <p class="text-center text-sm mt-6 text-gray-500">Sudah punya akun? <a href="#" onclick="Auth.toggleView('login')" class="text-primary hover:underline font-medium">Masuk</a></p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Scripts -->
+    <script src="Main.js"></script>
+    <script src="Auth.js"></script>
+    <script src="Dashboard.js"></script>
+    <script src="Users.js"></script>
+    <script src="Ledger.js"></script>
+    <script src="Report.js"></script>
+    <script src="Analisis.js"></script>
+    <script src="Profile.js"></script>
+    <script src="Rekap.js"></script>
+</body>
+</html>
