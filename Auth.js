@@ -67,9 +67,8 @@ const Auth = {
             ];
         }
 
-        // Terdapat atribut title="${m.text}" yang akan memunculkan tooltip bawaan saat menu dicollapse
         navContainer.innerHTML = menus.map(m => `
-            <a href="#" onclick="Router.navigate('${m.id}')" title="${m.text}" class="flex items-center gap-4 px-5 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-primary/10 hover:text-primary dark:hover:bg-gray-700 transition-colors font-medium">
+            <a href="#" onclick="Router.navigate('${m.id}'); return false;" title="${m.text}" class="flex items-center gap-4 px-5 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-primary/10 hover:text-primary dark:hover:bg-gray-700 transition-colors font-medium">
                 <div class="w-6 flex justify-center flex-shrink-0"><i class="fas ${m.icon} text-lg"></i></div>
                 <span class="sidebar-text transition-opacity duration-300 ${Utils.isSidebarCollapsed ? 'hidden opacity-0' : ''}">${m.text}</span>
             </a>
@@ -123,6 +122,7 @@ const Auth = {
     },
 
     logout: () => {
+        if (typeof Utils !== 'undefined' && Utils.closeMobileMenu) Utils.closeMobileMenu();
         localStorage.removeItem('fin_user');
         if (typeof inactivityTimer !== 'undefined') clearTimeout(inactivityTimer);
         document.getElementById('login-form').reset();
@@ -137,6 +137,9 @@ window.addEventListener('DOMContentLoaded', Auth.checkAuth);
 
 const Router = {
     navigate: (pageId) => {
+        // Tutup menu mobile otomatis saat navigasi diklik
+        if (typeof Utils !== 'undefined' && Utils.closeMobileMenu) Utils.closeMobileMenu();
+
         const titles = { dashboard: 'Dashboard Analitik', users: 'Manajemen Pengguna', ledger: 'Buku Besar Transaksi',
             report: 'Laporan Keuangan', analisis: 'Analisis Keuangan', profile: 'Pengaturan Profil', rekap: 'Rekapitulasi Tahunan' };
         document.getElementById('page-title').textContent = titles[pageId] || 'Halaman';
