@@ -1,6 +1,6 @@
 // ==========================================
 // FILE: Report.js
-// FUNGSI: UI Laporan & Cetak A4 (Format DD-MM-YYYY)
+// FUNGSI: UI Laporan & Cetak A4 (Urut Tanggal Terlama ke Terbaru)
 // ==========================================
 
 const Report = {
@@ -95,14 +95,21 @@ const Report = {
         try {
             const allData = await Utils.fetchAPI('getTransactions', { userId: user.ID, role: user.Role });
             
-            // Filter berdasarkan tanggal lokal YYYY-MM-DD agar akurat tanpa selisih zona waktu
+            // Filter berdasarkan tanggal lokal YYYY-MM-DD
             Report.reportData = allData.filter(t => {
                 const trxYMD = Report.toYMD(t.Tanggal);
                 return trxYMD >= Report.startDate && trxYMD <= Report.endDate;
             });
             
-            // Urutkan kronologis dari tanggal terlama ke terbaru
-            Report.reportData.sort((a, b) => Report.toYMD(a.Tanggal).localeCompare(Report.toYMD(b.Tanggal)));
+            // Urutkan berdasarkan kolom Tanggal dari TERLAMA ke TERBARU
+            Report.reportData.sort((a, b) => {
+                const dateA = Report.toYMD(a.Tanggal);
+                const dateB = Report.toYMD(b.Tanggal);
+                if (dateA !== dateB) {
+                    return dateA.localeCompare(dateB);
+                }
+                return new Date(a.CreatedAt || 0) - new Date(b.CreatedAt || 0);
+            });
             
             Report.renderTableResult();
         } catch (error) {} finally {
