@@ -1,6 +1,6 @@
 // ==========================================
 // FILE: Ledger.js
-// FUNGSI: UI Buku Besar (Cards Total, Filter Bulan & Tahun)
+// FUNGSI: UI Buku Besar (Urut Tanggal Terbaru ke Terlama)
 // ==========================================
 
 const Ledger = {
@@ -17,6 +17,34 @@ const Ledger = {
         'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
         'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
     ],
+
+    parseLocalDate: (dateStr) => {
+        if (!dateStr) return null;
+        if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr.trim())) {
+            const [y, m, d] = dateStr.trim().split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+        const d = new Date(dateStr);
+        return isNaN(d.getTime()) ? null : d;
+    },
+
+    toYMD: (dateStr) => {
+        const d = Ledger.parseLocalDate(dateStr);
+        if (!d) return '';
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    },
+
+    formatDate: (dateStr) => {
+        const d = Ledger.parseLocalDate(dateStr);
+        if (!d) return dateStr;
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}-${month}-${year}`;
+    },
 
     render: async () => {
         const container = document.getElementById('content-area');
@@ -188,12 +216,22 @@ const Ledger = {
 
         // 1. Filter data sesuai Bulan & Tahun terpilih
         const periodData = Ledger.allData.filter(t => {
-            const d = new Date(t.Tanggal);
-            if (isNaN(d.getTime())) return false;
+            const d = Ledger.parseLocalDate(t.Tanggal);
+            if (!d) return false;
             return d.getMonth() === Ledger.selectedMonth && d.getFullYear() === Ledger.selectedYear;
         });
 
-        // 2. Hitung Total Debit & Kredit pada periode terpilih untuk Card
+        // 2. Urutkan berdasarkan kolom Tanggal dari TERBARU ke TERLAMA
+        periodData.sort((a, b) => {
+            const dateA = Ledger.toYMD(a.Tanggal);
+            const dateB = Ledger.toYMD(b.Tanggal);
+            if (dateB !== dateA) {
+                return dateB.localeCompare(dateA);
+            }
+            return new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0);
+        });
+
+        // 3. Hitung Total Debit & Kredit pada periode terpilih untuk Card
         let totalDebit = 0;
         let totalKredit = 0;
         periodData.forEach(t => {
@@ -205,7 +243,7 @@ const Ledger = {
         document.getElementById('ledger-total-debit').textContent = Utils.formatCurrency(totalDebit);
         document.getElementById('ledger-total-kredit').textContent = Utils.formatCurrency(totalKredit);
 
-        // 3. Terapkan pencarian teks pada data bulan & tahun terpilih
+        // 4. Terapkan pencarian teks pada data bulan & tahun terpilih
         if (Ledger.searchQuery) {
             Ledger.filteredData = periodData.filter(t =>
                 String(t.Keterangan).toLowerCase().includes(Ledger.searchQuery) ||
@@ -226,14 +264,7 @@ const Ledger = {
 
         tbody.innerHTML = displayData.map((t, i) => {
             const isDebit = t.Jenis === 'Debit';
-            
-            let formattedDate = t.Tanggal;
-            const d = new Date(t.Tanggal);
-            if (!isNaN(d.getTime())) {
-                const day = String(d.getDate()).padStart(2, '0');
-                const month = String(d.getMonth() + 1).padStart(2, '0');
-                formattedDate = `${day}-${month}-${d.getFullYear()}`;
-            }
+            const formattedDate = Ledger.formatDate(t.Tanggal);
 
             return `
             <tr class="${i % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900'} border-b dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200">
@@ -275,8 +306,8 @@ const Ledger = {
 
         let chartDebit = Array(12).fill(0); let chartKredit = Array(12).fill(0);
         Ledger.allData.forEach(t => {
-            let d = new Date(t.Tanggal);
-            if (!isNaN(d.getTime()) && d.getFullYear() === year) {
+            let d = Ledger.parseLocalDate(t.Tanggal);
+            if (d && d.getFullYear() === year) {
                 if (t.Jenis === 'Debit') chartDebit[d.getMonth()] += parseFloat(t.Nominal) || 0;
                 else chartKredit[d.getMonth()] += parseFloat(t.Nominal) || 0;
             }
@@ -305,16 +336,11 @@ const Ledger = {
         if (mode === 'add') {
             document.getElementById('ledger-modal-title').textContent = 'Catat Transaksi';
             document.getElementById('form-trx-id').value = '';
-            document.getElementById('form-trx-tanggal').value = new Date().toISOString().split('T')[0];
+            document.getElementById('form-trx-tanggal').value = Ledger.toYMD(new Date());
         } else {
             document.getElementById('ledger-modal-title').textContent = 'Edit Transaksi';
             document.getElementById('form-trx-id').value = data.ID;
-            
-            let fDate = data.Tanggal;
-            const d = new Date(data.Tanggal);
-            if (!isNaN(d.getTime())) fDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            
-            document.getElementById('form-trx-tanggal').value = fDate;
+            document.getElementById('form-trx-tanggal').value = Ledger.toYMD(data.Tanggal);
             document.getElementById('form-trx-jenis').value = data.Jenis;
             document.getElementById('form-trx-nominal').value = data.Nominal;
             document.getElementById('form-trx-keterangan').value = data.Keterangan;
