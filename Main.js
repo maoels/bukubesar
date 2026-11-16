@@ -4,8 +4,8 @@
 // ==========================================
 
 const _k1 = "aHR0cHM6Ly9zY3JpcHQuZ29vZ2xlLmNvbS9tYWNyb3Mvcy9BS2Z5";
-const _k2 = "Y2J3YmRmelhEcjdydDR3WlhkUzNJY3VvbVJNbzJvZGN4VlY3YXdI";
-const _k3 = "V1RJeVNQcU1MdC11MEd2U0tReEhpcG9SYkJxejBQUS9leGU=";
+const _k2 = "Y2J3YmRmelhEcjdydDR3WlhkS3IwY3VvbVJNbzJvZGN4VlY3YXdI";
+const _k3 = "V1RJeVNQcU1MdC11MEd2U0tReEhpcG9SYkJxejBQUS9leGVj";
 
 const AppConfig = {
     get API_URL() {
