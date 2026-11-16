@@ -133,7 +133,10 @@ const Profile = {
         try {
             // Panggil API (fungsi updateProfile di Api.gs sudah disiapkan)
             const updatedUser = await Utils.fetchAPI('updateProfile', payload);
-            
+
+            //properti token lama tetap dipertahankan di localStorage
+            updatedUser.token = user.token;
+
             // Perbarui data local storage agar nama di header berubah
             localStorage.setItem('fin_user', JSON.stringify(updatedUser));
             
