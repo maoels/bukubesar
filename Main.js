@@ -1,15 +1,21 @@
 // ==========================================
 // FILE: Main.js
-// FUNGSI: Config Global, Utility, Token Sender & Responsive Table
+// FUNGSI: Config Global (URL Tersamar), Utility, Token & Responsive Table
 // ==========================================
 
+const _k1 = "aHR0cHM6Ly9zY3JpcHQuZ29vZ2xlLmNvbS9tYWNyb3Mvcy9BS2Z5";
+const _k2 = "Y2J3YmRmelhEcjdydDR3WlhkUzNJY3VvbVJNbzJvZGN4VlY3YXdI";
+const _k3 = "V1RJeVNQcU1MdC11MEd2U0tReEhpcG9SYkJxejBQUS9leGU=";
+
 const AppConfig = {
-    // PENTING: Ganti URL di bawah ini dengan Web App URL API Anda
-    API_URL: 'https://script.google.com/macros/s/AKfycbwbdfzXDr7rt4wZXdKr0cuomRMo2odcxVV7awHWTIySPqMLt-u0GvSKQxHipoRbBqz0PQ/exec', 
+    get API_URL() {
+        return atob(_k1 + _k2 + _k3);
+    },
     INACTIVITY_LIMIT_MS: 10 * 60 * 1000 // 10 Menit
 };
 
 const Utils = {
+    // --- LOGIC TOGGLE SIDEBAR DESKTOP ---
     isSidebarCollapsed: false,
     toggleSidebar: () => {
         Utils.isSidebarCollapsed = !Utils.isSidebarCollapsed;
@@ -46,6 +52,7 @@ const Utils = {
         }
     },
 
+    // --- LOGIC MENU HAMBURGER MOBILE ---
     toggleMobileMenu: () => {
         const sidebar = document.getElementById('sidebar');
         const backdrop = document.getElementById('mobile-backdrop');
@@ -100,7 +107,6 @@ const Utils = {
     
     fetchAPI: async (action, data = {}) => {
         try {
-            // Ambil token yang tersimpan saat login
             const currentUser = JSON.parse(localStorage.getItem('fin_user') || '{}');
             
             const response = await fetch(AppConfig.API_URL, {
@@ -113,7 +119,6 @@ const Utils = {
             });
             const result = await response.json();
 
-            // Jika token ditolak / kedaluwarsa (401), paksa keluar ke halaman login
             if (result.code === 401) {
                 localStorage.removeItem('fin_user');
                 if (typeof Auth !== 'undefined') Auth.showAuth();
@@ -129,6 +134,9 @@ const Utils = {
     }
 };
 
+// ==========================================
+// OTOMATISASI SCROLL HORIZONTAL TABEL DI SEMUA HALAMAN
+// ==========================================
 function initResponsiveTables() {
     const contentArea = document.getElementById('content-area');
     if (!contentArea) return;
@@ -149,6 +157,9 @@ function initResponsiveTables() {
     observer.observe(contentArea, { childList: true, subtree: true });
 }
 
+// ==========================================
+// SESSION & INACTIVITY MANAGER
+// ==========================================
 let inactivityTimer;
 
 function resetInactivityTimer() {
