@@ -1,6 +1,6 @@
 // ==========================================
 // FILE: Main.js
-// FUNGSI: Config Global, Utility, Toggle, Mobile Menu & Responsive Table
+// FUNGSI: Config Global, Utility, Token Sender & Responsive Table
 // ==========================================
 
 const AppConfig = {
@@ -10,7 +10,6 @@ const AppConfig = {
 };
 
 const Utils = {
-    // --- LOGIC TOGGLE SIDEBAR DESKTOP ---
     isSidebarCollapsed: false,
     toggleSidebar: () => {
         Utils.isSidebarCollapsed = !Utils.isSidebarCollapsed;
@@ -47,13 +46,11 @@ const Utils = {
         }
     },
 
-    // --- LOGIC MENU HAMBURGER MOBILE ---
     toggleMobileMenu: () => {
         const sidebar = document.getElementById('sidebar');
         const backdrop = document.getElementById('mobile-backdrop');
         if (!sidebar) return;
 
-        // Pastikan teks menu tampil utuh saat drawer dibuka di mobile
         if (Utils.isSidebarCollapsed) {
             Utils.toggleSidebar();
         }
@@ -103,12 +100,27 @@ const Utils = {
     
     fetchAPI: async (action, data = {}) => {
         try {
+            // Ambil token yang tersimpan saat login
+            const currentUser = JSON.parse(localStorage.getItem('fin_user') || '{}');
+            
             const response = await fetch(AppConfig.API_URL, {
                 method: 'POST',
-                body: JSON.stringify({ action: action, data: data })
+                body: JSON.stringify({ 
+                    action: action, 
+                    token: currentUser.token || '', 
+                    data: data 
+                })
             });
             const result = await response.json();
-            if(result.code !== 200) throw new Error(result.message);
+
+            // Jika token ditolak / kedaluwarsa (401), paksa keluar ke halaman login
+            if (result.code === 401) {
+                localStorage.removeItem('fin_user');
+                if (typeof Auth !== 'undefined') Auth.showAuth();
+                throw new Error(result.message);
+            }
+
+            if (result.code !== 200) throw new Error(result.message);
             return result.data;
         } catch (error) {
             Utils.showToast(error.message, 'error');
@@ -117,9 +129,6 @@ const Utils = {
     }
 };
 
-// ==========================================
-// OTOMATISASI SCROLL HORIZONTAL TABEL DI SEMUA HALAMAN
-// ==========================================
 function initResponsiveTables() {
     const contentArea = document.getElementById('content-area');
     if (!contentArea) return;
@@ -140,9 +149,6 @@ function initResponsiveTables() {
     observer.observe(contentArea, { childList: true, subtree: true });
 }
 
-// ==========================================
-// SESSION & INACTIVITY MANAGER
-// ==========================================
 let inactivityTimer;
 
 function resetInactivityTimer() {
